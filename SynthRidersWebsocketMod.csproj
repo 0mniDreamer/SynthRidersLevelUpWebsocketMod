@@ -1,0 +1,83 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    
+    <!-- Mod Info -->
+    <AssemblyName>SynthRidersWebsocketMod</AssemblyName>
+    <Product>Synth Riders WebSocket Events</Product>
+    <Description>Exposes all Synth Riders game events via WebSocket for external integrations</Description>
+    <Version>2.4.0</Version>
+    <Authors>OmniDreamer</Authors>
+	<SynthRidersPath>F:\SteamLibrary\steamapps\common\SynthRiders</SynthRidersPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- MelonLoader -->
+    <Reference Include="MelonLoader">
+      <HintPath>$(SynthRidersPath)\MelonLoader\net6\MelonLoader.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    
+    <!-- IL2CPP Interop -->
+    <Reference Include="Il2Cppmscorlib">
+      <HintPath>$(SynthRidersPath)\MelonLoader\Il2CppAssemblies\Il2Cppmscorlib.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    
+    <Reference Include="Il2CppSystem">
+      <HintPath>$(SynthRidersPath)\MelonLoader\Il2CppAssemblies\Il2CppSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    
+    <Reference Include="Il2CppInterop.Runtime">
+      <HintPath>$(SynthRidersPath)\MelonLoader\net6\Il2CppInterop.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    
+    <!-- Harmony for patching -->
+    <Reference Include="0Harmony">
+      <HintPath>$(SynthRidersPath)\MelonLoader\net6\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    
+    <!-- Unity -->
+    <Reference Include="UnityEngine">
+      <HintPath>$(SynthRidersPath)\MelonLoader\Il2CppAssemblies\UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(SynthRidersPath)\MelonLoader\Il2CppAssemblies\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    
+    <!-- Game Assemblies - All IL2CPP generated assemblies we need -->
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(SynthRidersPath)\MelonLoader\Il2CppAssemblies\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    
+    <!-- Progression Assembly (if separate) -->
+    <Reference Include="Il2CppProgression">
+      <HintPath>$(SynthRidersPath)\MelonLoader\Il2CppAssemblies\Il2CppProgression.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    
+    <!-- Synth Utils -->
+    <Reference Include="Il2CppSynth.Utils">
+      <HintPath>$(SynthRidersPath)\MelonLoader\Il2CppAssemblies\Il2CppSynth.Utils.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Auto-copy to Mods folder -->
+  <Target Name="CopyToMods" AfterTargets="Build">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(SynthRidersPath)\Mods" SkipUnchangedFiles="true" />
+    <Message Importance="High" Text="Copied $(TargetFileName) to Mods folder" />
+  </Target>
+
+</Project>

@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <!-- 
+    ============================================================
+    UPDATE THIS PATH TO YOUR SYNTH RIDERS INSTALLATION
+    ============================================================
+    
+    Steam (default):
+      C:\Program Files (x86)\Steam\steamapps\common\SynthRiders
+    
+    Oculus:
+      C:\Program Files\Oculus\Software\Software\kluge-interactive-synth-riders
+    -->
+    <SynthRidersPath>C:\Program Files (x86)\Steam\steamapps\common\SynthRiders</SynthRidersPath>
+  </PropertyGroup>
+</Project>

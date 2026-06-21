@@ -1,0 +1,28 @@
+# Build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.dll
+*.pdb
+*.user
+*.suo
+*.cache
+
+# Local build configuration (contains a machine-specific game path)
+# Comment the next line out if you intend to commit a shared path.
+Directory.Build.props.user
+
+# IDE / editor
+.vs/
+.vscode/
+.idea/
+*.csproj.user
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Packaging
+*.zip
+!docs/**/*.zip

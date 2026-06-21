@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synth Riders Event Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #4a4a6a;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #00d4ff;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff4444;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #44ff44;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 400px;
+            gap: 20px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 800px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .panel h2 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #888;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Game Stats Panel */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .stat-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .stat-value.combo {
+            color: #ff9900;
+        }
+
+        .stat-value.health {
+            color: #44ff44;
+        }
+
+        .stat-value.health.low {
+            color: #ff4444;
+            animation: flash 0.5s infinite;
+        }
+
+        @keyframes flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Progression Panel */
+        .level-display {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.3), rgba(75, 0, 130, 0.3));
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .level-number {
+            font-size: 48px;
+            font-weight: bold;
+            color: #da70d6;
+            text-shadow: 0 0 20px rgba(218, 112, 214, 0.5);
+        }
+
+        .level-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #888;
+        }
+
+        .xp-bar-container {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            height: 20px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        .xp-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #8a2be2, #da70d6);
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+
+        .xp-text {
+            text-align: center;
+            margin-top: 8px;
+            font-size: 14px;
+            color: #888;
+        }
+
+        /* Event Log */
+        .event-log {
+            height: 500px;
+            overflow-y: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+        }
+
+        .event-log::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .event-log::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+        }
+
+        .event-log::-webkit-scrollbar-thumb {
+            background: #4a4a6a;
+            border-radius: 4px;
+        }
+
+        .event-item {
+            padding: 8px 12px;
+            margin-bottom: 4px;
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 3px solid #4a4a6a;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .event-item.gameplay { border-left-color: #00d4ff; }
+        .event-item.progression { border-left-color: #da70d6; }
+        .event-item.song { border-left-color: #44ff44; }
+        .event-item.health { border-left-color: #ff4444; }
+        .event-item.combo { border-left-color: #ff9900; }
+
+        .event-time {
+            color: #666;
+            font-size: 10px;
+        }
+
+        .event-type {
+            font-weight: bold;
+            margin: 4px 0;
+        }
+
+        .event-data {
+            color: #888;
+            font-size: 11px;
+            word-break: break-all;
+        }
+
+        /* Notifications */
+        .notifications {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .notification {
+            padding: 15px 25px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid;
+            animation: notifyIn 0.5s ease, notifyOut 0.5s ease 2.5s forwards;
+            min-width: 250px;
+            text-align: center;
+        }
+
+        .notification.level-up {
+            border-color: #da70d6;
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.9), rgba(75, 0, 130, 0.9));
+        }
+
+        .notification.xp {
+            border-color: #8a2be2;
+        }
+
+        .notification.combo {
+            border-color: #ff9900;
+        }
+
+        .notification.badge {
+            border-color: #ffd700;
+        }
+
+        .notification-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .notification-subtitle {
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        @keyframes notifyIn {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes notifyOut {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+        }
+
+        /* Song Info */
+        .song-info {
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .song-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .song-author {
+            font-size: 14px;
+            color: #888;
+        }
+
+        .song-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .song-status.playing {
+            background: #44ff44;
+            color: #000;
+        }
+
+        .song-status.menu {
+            background: #666;
+            color: #fff;
+        }
+
+        /* Clear button */
+        .clear-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #888;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .clear-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 Synth Riders Event Monitor</h1>
+            <div class="connection-status">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Disconnected</span>
+            </div>
+        </header>
+
+        <div class="main-grid">
+            <!-- Game Stats Panel -->
+            <div class="panel">
+                <h2>🎵 Game Stats</h2>
+                
+                <div class="song-info">
+                    <div class="song-title" id="songTitle">No Song</div>
+                    <div class="song-author" id="songAuthor">--</div>
+                    <span class="song-status menu" id="songStatus">Menu</span>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">Score</div>
+                        <div class="stat-value" id="score">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Combo</div>
+                        <div class="stat-value combo" id="combo">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Max Combo</div>
+                        <div class="stat-value" id="maxCombo">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Health</div>
+                        <div class="stat-value health" id="health">100%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progression Panel -->
+            <div class="panel">
+                <h2>🏆 Progression</h2>
+                
+                <div class="level-display">
+                    <div class="level-label">Level</div>
+                    <div class="level-number" id="level">--</div>
+                </div>
+
+                <div class="xp-bar-container">
+                    <div class="xp-bar" id="xpBar"></div>
+                </div>
+                <div class="xp-text">
+                    <span id="currentXP">0</span> XP
+                </div>
+
+                <div class="stats-grid" style="margin-top: 20px;">
+                    <div class="stat-item">
+                        <div class="stat-label">Total XP</div>
+                        <div class="stat-value" id="totalXP" style="font-size: 20px;">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Last XP Gain</div>
+                        <div class="stat-value" id="lastXP" style="font-size: 20px; color: #44ff44;">+0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Event Log Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>📋 Event Log</h2>
+                    <button class="clear-btn" onclick="clearLog()">Clear</button>
+                </div>
+                <div class="event-log" id="eventLog"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications Container -->
+    <div class="notifications" id="notifications"></div>
+
+    <script>
+        // State
+        let ws = null;
+        let reconnectTimeout = null;
+        let eventCount = 0;
+        const maxEvents = 100;
+
+        // DOM Elements
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const eventLog = document.getElementById('eventLog');
+        const notifications = document.getElementById('notifications');
+
+        // Game state
+        let gameState = {
+            score: 0,
+            combo: 0,
+            maxCombo: 0,
+            health: 100,
+            level: 0,
+            currentXP: 0,
+            totalXP: 0,
+            xpForNextLevel: 0,
+            levelProgress: null,
+            song: '',
+            author: '',
+            isPlaying: false
+        };
+
+        // Connect to WebSocket
+        function connect() {
+            const wsUrl = 'ws://localhost:9000';
+            
+            try {
+                ws = new WebSocket(wsUrl);
+
+                ws.onopen = () => {
+                    console.log('Connected to Synth Riders');
+                    statusDot.classList.add('connected');
+                    statusText.textContent = 'Connected';
+                    addEvent('system', 'Connected', { url: wsUrl });
+                };
+
+                ws.onclose = () => {
+                    console.log('Disconnected');
+                    statusDot.classList.remove('connected');
+                    statusText.textContent = 'Disconnected - Reconnecting...';
+                    
+                    // Reconnect after 3 seconds
+                    reconnectTimeout = setTimeout(connect, 3000);
+                };
+
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        handleEvent(data);
+                    } catch (e) {
+                        console.error('Failed to parse message:', e);
+                    }
+                };
+            } catch (e) {
+                console.error('Connection failed:', e);
+                reconnectTimeout = setTimeout(connect, 3000);
+            }
+        }
+
+        // Handle incoming events
+        function handleEvent(event) {
+            const { eventType, data } = event;
+
+            // Determine event category for styling
+            let category = 'gameplay';
+            if (['LevelUp', 'XPGained', 'BadgeUnlocked', 'ProgressionUpdate', 'AchievementUnlocked', 'MissionCompleted'].includes(eventType)) {
+                category = 'progression';
+            } else if (['SongStart', 'SongInfo', 'SongEnd', 'LevelLoaded', 'SongSessionComplete'].includes(eventType)) {
+                category = 'song';
+            } else if (['HealthWarning', 'HealthDepleted', 'HealthUpdate'].includes(eventType)) {
+                category = 'health';
+            } else if (['ComboMilestone', 'ComboBreak'].includes(eventType)) {
+                category = 'combo';
+            }
+
+            // Add to event log
+            addEvent(category, eventType, data);
+
+            // Update UI based on event type
+            switch (eventType) {
+                case 'Connected':
+                    // Initial connection
+                    break;
+
+                case 'NoteHit':
+                    gameState.score = data.totalScore || gameState.score;
+                    gameState.combo = data.combo || 0;
+                    if (gameState.combo > gameState.maxCombo) {
+                        gameState.maxCombo = gameState.combo;
+                    }
+                    updateStats();
+                    break;
+
+                case 'ComboBreak':
+                    gameState.combo = 0;
+                    updateStats();
+                    break;
+
+                case 'ComboMilestone':
+                    showNotification('combo', `🔥 ${data.combo} COMBO!`, '');
+                    break;
+
+                case 'HealthUpdate': {
+                    let h = (data.health !== undefined) ? data.health
+                          : (data.healthPercent !== undefined) ? data.healthPercent
+                          : (data.lifeBarPercent !== undefined) ? data.lifeBarPercent
+                          : gameState.health;
+                    // Defensive: accept either 0..1 fraction or 0..100 percent, then clamp.
+                    if (h > 0 && h <= 1) h = h * 100;
+                    gameState.health = Math.max(0, Math.min(100, h));
+                    updateStats();
+                    break;
+                }
+
+                case 'HealthWarning':
+                    document.getElementById('health').classList.add('low');
+                    break;
+
+                case 'HealthDepleted':
+                    gameState.health = 0;
+                    gameState.isPlaying = false;
+                    updateStats();
+                    updateSongStatus();
+                    showNotification('health', '💀 Game Over', `Score: ${gameState.score.toLocaleString()}`);
+                    break;
+
+                case 'SongStart':
+                    gameState.song = data.song || 'Unknown';
+                    gameState.author = data.author || '';
+                    gameState.isPlaying = true;
+                    gameState.score = 0;
+                    gameState.combo = 0;
+                    gameState.maxCombo = 0;
+                    gameState.health = 100;
+                    document.getElementById('health').classList.remove('low');
+                    updateStats();
+                    updateSongStatus();
+                    break;
+
+                case 'SongInfo':
+                    if (data.song) gameState.song = data.song;
+                    if (data.author) gameState.author = data.author;
+                    updateSongStatus();
+                    break;
+
+                case 'SongEnd':
+                case 'SongSessionComplete':
+                    gameState.isPlaying = false;
+                    if (data.score) gameState.score = data.score;
+                    if (data.maxCombo) gameState.maxCombo = data.maxCombo;
+                    updateStats();
+                    updateSongStatus();
+
+                    if (data.xpEarned) {
+                        document.getElementById('lastXP').textContent = `+${data.xpEarned}`;
+                        showNotification('xp', `+${data.xpEarned} XP`, 'Song Complete!');
+                    }
+                    break;
+
+                case 'LevelLoaded':
+                    gameState.isPlaying = true;
+                    updateSongStatus();
+                    break;
+
+                case 'GameExited':
+                case 'GameRestarted':
+                    gameState.isPlaying = false;
+                    gameState.score = 0;
+                    gameState.combo = 0;
+                    gameState.health = 100;
+                    document.getElementById('health').classList.remove('low');
+                    updateStats();
+                    updateSongStatus();
+                    break;
+
+                case 'LevelUp':
+                    gameState.level = data.newLevel;
+                    updateProgression();
+                    showNotification('level-up', '🎉 LEVEL UP!', `Level ${data.newLevel}`);
+                    break;
+
+                case 'XPGained':
+                    document.getElementById('lastXP').textContent = `+${data.amount}`;
+                    showNotification('xp', `+${data.amount} XP`, '');
+                    break;
+
+                case 'ProgressionUpdate':
+                    if (data.currentLevel) gameState.level = data.currentLevel;
+                    if (data.currentXP !== undefined) gameState.currentXP = data.currentXP;
+                    if (data.totalXP !== undefined) gameState.totalXP = data.totalXP;
+                    if (data.xpForNextLevel !== undefined) gameState.xpForNextLevel = data.xpForNextLevel;
+                    if (data.levelProgress !== undefined) gameState.levelProgress = data.levelProgress;
+                    updateProgression();
+                    break;
+
+                case 'BadgeUnlocked':
+                    showNotification('badge', '🏅 Badge Unlocked!', data.badgeName || data.badgeId);
+                    break;
+
+                case 'AchievementUnlocked':
+                    showNotification('badge', '🏆 Achievement!', data.achievementId);
+                    break;
+
+                case 'MissionCompleted':
+                    showNotification('badge', '✅ Mission Complete!', data.missionName || data.missionId);
+                    break;
+
+                case 'SceneChanged':
+                    if (!data.isInGame) {
+                        gameState.isPlaying = false;
+                        gameState.song = '';
+                        gameState.author = '';
+                        updateSongStatus();
+                    }
+                    break;
+            }
+        }
+
+        // Add event to log
+        function addEvent(category, type, data) {
+            const time = new Date().toLocaleTimeString();
+            const dataStr = JSON.stringify(data, null, 2);
+
+            const eventEl = document.createElement('div');
+            eventEl.className = `event-item ${category}`;
+            eventEl.innerHTML = `
+                <div class="event-time">${time}</div>
+                <div class="event-type">${type}</div>
+                <div class="event-data">${dataStr}</div>
+            `;
+
+            eventLog.insertBefore(eventEl, eventLog.firstChild);
+
+            // Limit events
+            eventCount++;
+            if (eventCount > maxEvents) {
+                eventLog.removeChild(eventLog.lastChild);
+                eventCount--;
+            }
+        }
+
+        // Update stats display
+        function updateStats() {
+            document.getElementById('score').textContent = gameState.score.toLocaleString();
+            document.getElementById('combo').textContent = gameState.combo;
+            document.getElementById('maxCombo').textContent = gameState.maxCombo;
+            
+            const healthEl = document.getElementById('health');
+            healthEl.textContent = Math.round(gameState.health) + '%';
+            
+            if (gameState.health < 30) {
+                healthEl.classList.add('low');
+            } else {
+                healthEl.classList.remove('low');
+            }
+        }
+
+        // Update progression display
+        function updateProgression() {
+            document.getElementById('level').textContent = gameState.level || '--';
+            document.getElementById('currentXP').textContent = gameState.currentXP.toLocaleString();
+            document.getElementById('totalXP').textContent = gameState.totalXP.toLocaleString();
+
+            // Prefer the game's real values: levelProgress (0..1) or currentXP/xpForNextLevel.
+            let progress;
+            if (gameState.levelProgress !== undefined && gameState.levelProgress !== null) {
+                progress = gameState.levelProgress * 100;
+            } else if (gameState.xpForNextLevel) {
+                progress = (gameState.currentXP / gameState.xpForNextLevel) * 100;
+            } else {
+                const xpForLevel = 1000;
+                progress = (gameState.currentXP % xpForLevel) / xpForLevel * 100;
+            }
+            document.getElementById('xpBar').style.width = Math.max(0, Math.min(100, progress)) + '%';
+        }
+
+        // Update song status
+        function updateSongStatus() {
+            const titleEl = document.getElementById('songTitle');
+            const authorEl = document.getElementById('songAuthor');
+            const statusEl = document.getElementById('songStatus');
+
+            if (gameState.isPlaying && gameState.song) {
+                titleEl.textContent = gameState.song;
+                authorEl.textContent = gameState.author || '--';
+                statusEl.textContent = 'Playing';
+                statusEl.className = 'song-status playing';
+            } else if (gameState.song) {
+                titleEl.textContent = gameState.song;
+                authorEl.textContent = gameState.author || '--';
+                statusEl.textContent = 'Ended';
+                statusEl.className = 'song-status menu';
+            } else {
+                titleEl.textContent = 'No Song';
+                authorEl.textContent = '--';
+                statusEl.textContent = 'Menu';
+                statusEl.className = 'song-status menu';
+            }
+        }
+
+        // Show notification
+        function showNotification(type, title, subtitle) {
+            const notif = document.createElement('div');
+            notif.className = `notification ${type}`;
+            notif.innerHTML = `
+                <div class="notification-title">${title}</div>
+                ${subtitle ? `<div class="notification-subtitle">${subtitle}</div>` : ''}
+            `;
+
+            notifications.appendChild(notif);
+
+            // Remove after animation
+            setTimeout(() => {
+                notif.remove();
+            }, 3000);
+        }
+
+        // Clear event log
+        function clearLog() {
+            eventLog.innerHTML = '';
+            eventCount = 0;
+        }
+
+        // Start connection
+        connect();
+    </script>
+</body>
+</html>
