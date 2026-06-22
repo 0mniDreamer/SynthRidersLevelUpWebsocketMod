@@ -1,10 +1,10 @@
 # Synth Riders WebSocket Events
 
-A MelonLoader mod for **Synth Riders** that broadcasts live gameplay
+A [MelonLoader](https://melonwiki.xyz/) mod for **Synth Riders** that broadcasts live gameplay
 events over a local WebSocket, so external apps can react to play in real time. Comes with a
-ready-to-use example overlay.
+ready-to-use OBS overlays.
 
-Useful for stream overlays, chat bots, smart-home/LED reactions, haptics, and stat tracking etc.
+Useful for stream overlays, chat bots, smart-home/LED reactions, haptics, and stat tracking.
 
 <!-- Add a screenshot of the overlay at docs/overlay.png and uncomment:
 ![Overlay screenshot](docs/overlay.png)
@@ -17,7 +17,7 @@ Useful for stream overlays, chat bots, smart-home/LED reactions, haptics, and st
 | Game | Synth Riders (Kluge Interactive) |
 | Runtime | IL2CPP, .NET 6 |
 | MelonLoader | 0.7.2 (Open-Beta) |
-| Unity | 6000.3.13f1 (current)  |
+| Unity | 6000.3.13f1 (current) and 2021.3.45f2 (previous branch) |
 
 A single build loads on both Unity branches — game members are resolved by reflection at runtime
 rather than against branch-specific assemblies.
@@ -29,8 +29,43 @@ rather than against branch-specific assemblies.
 3. Copy the DLL into `SynthRiders/Mods/`.
 4. Launch the game. On startup the console prints `[EventServer] Started on ws://localhost:9000`.
 
-The overlay (`SynthRidersOverlay.html`) is standalone — open it in a browser or add it as an OBS
-**Browser Source** (point it at the local file). It connects to the WebSocket automatically.
+The mod ships with two ready-to-use overlays — see [Overlays](#overlays).
+
+## Overlays
+
+Both overlays are standalone HTML files. Open them in a browser, or add them in OBS as a
+**Browser Source** → *Local file*. Each connects to the WebSocket on its own and needs no setup.
+Set the source to your canvas size (e.g. 1920×1080); the backgrounds are transparent so gameplay
+shows through.
+
+### Stream overlay — `SynthRidersStreamOverlay.html`
+
+A minimal, transparent broadcast HUD designed to sit over live gameplay:
+
+- **Top-left** — "Now Playing" with the song title and artist, plus an equalizer that animates
+  only while a song is active. The card fades out a few seconds after a song ends.
+- **Bottom-right** — level, an XP bar driven by the game's real `levelProgress`, current/next XP,
+  total XP, and a `+N` gain pop. Leveling up triggers a glow burst and a "Level Up!" flash.
+
+Panels stay hidden until real data arrives, so an empty corner never shows on stream.
+
+**Options** (append to the file URL as a query string):
+
+| Option | Effect |
+|--------|--------|
+| `?demo=1` | Feeds sample data and a looping level-up so you can position the HUD **without the game running**. |
+| `?host=…&port=…` | Point at a non-default WebSocket (defaults to `localhost:9000`). |
+| `?scale=1.2` | Scale the whole HUD up or down to fit your canvas. |
+| `?persist` | Keep the song card visible between songs instead of fading it out. |
+| `?debug=1` | Show a small Live/Offline status dot (hidden by default so it never appears on stream). |
+
+Example: `SynthRidersStreamOverlay.html?scale=1.1&persist`
+
+### Dashboard overlay — `SynthRidersOverlay.html`
+
+A larger two-panel readout (score, combo, max combo, health, level, XP, last XP gain) — useful as
+a full status panel for a stream scene, a second monitor, or quickly confirming events are
+flowing.
 
 ## Quick start
 

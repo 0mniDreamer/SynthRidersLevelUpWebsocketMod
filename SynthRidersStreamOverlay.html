@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Synth Riders — Stream Overlay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Tweak --ui-scale (or pass ?scale=1.2) to fit your canvas. 1 = sized for 1080p. */
+    --ui-scale: 1;
+    --margin: calc(34px * var(--ui-scale));
+
+    --magenta: #ff2d95;
+    --cyan: #2de2e6;
+    --violet: #b14aed;
+    --ink: #0d061c;
+    --panel: rgba(13, 6, 28, 0.72);
+    --panel-edge: rgba(255, 255, 255, 0.10);
+    --text: #ffffff;
+    --muted: rgba(231, 222, 255, 0.62);
+
+    --rail: linear-gradient(90deg, var(--magenta), var(--violet) 55%, var(--cyan));
+    --glow-shadow: 0 0 calc(18px * var(--ui-scale)) rgba(255, 45, 149, 0.28),
+                   0 calc(8px * var(--ui-scale)) calc(28px * var(--ui-scale)) rgba(0, 0, 0, 0.45);
+    --text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.6);
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: transparent;        /* lets the game show through in OBS */
+    overflow: hidden;
+    font-family: 'Rajdhani', 'Segoe UI', system-ui, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---- shared panel chrome ---- */
+  .panel {
+    position: fixed;
+    background: var(--panel);
+    backdrop-filter: blur(calc(10px * var(--ui-scale)));
+    -webkit-backdrop-filter: blur(calc(10px * var(--ui-scale)));
+    border: 1px solid var(--panel-edge);
+    border-radius: calc(14px * var(--ui-scale));
+    box-shadow: var(--glow-shadow);
+    opacity: 0;
+    transform: translateY(calc(-8px * var(--ui-scale)));
+    transition: opacity .45s ease, transform .45s ease;
+    will-change: opacity, transform;
+  }
+  .panel.show { opacity: 1; transform: translateY(0); }
+
+  /* the neon "rail" accent that brands each panel */
+  .panel::after {
+    content: "";
+    position: absolute;
+    left: calc(16px * var(--ui-scale));
+    right: calc(16px * var(--ui-scale));
+    height: 2px;
+    background: var(--rail);
+    border-radius: 2px;
+    opacity: .9;
+    box-shadow: 0 0 calc(10px * var(--ui-scale)) rgba(255, 45, 149, 0.6);
+  }
+
+  .eyebrow {
+    font-family: 'Chakra Petch', sans-serif;
+    font-weight: 600;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    font-size: calc(12px * var(--ui-scale));
+    color: var(--muted);
+    text-shadow: var(--text-shadow);
+  }
+
+  /* ============ SONG CARD (top-left) ============ */
+  #song {
+    top: var(--margin);
+    left: var(--margin);
+    width: calc(420px * var(--ui-scale));
+    padding: calc(16px * var(--ui-scale)) calc(20px * var(--ui-scale)) calc(18px * var(--ui-scale));
+  }
+  #song::after { bottom: calc(10px * var(--ui-scale)); }
+
+  .song-head {
+    display: flex;
+    align-items: center;
+    gap: calc(10px * var(--ui-scale));
+    margin-bottom: calc(8px * var(--ui-scale));
+  }
+  .eq { display: flex; align-items: flex-end; gap: 2px; height: calc(14px * var(--ui-scale)); }
+  .eq span {
+    width: calc(3px * var(--ui-scale));
+    height: 30%;
+    background: var(--cyan);
+    border-radius: 2px;
+    box-shadow: 0 0 calc(6px * var(--ui-scale)) var(--cyan);
+  }
+  body.playing .eq span { animation: eq 0.9s ease-in-out infinite; }
+  .eq span:nth-child(2) { animation-delay: .15s; }
+  .eq span:nth-child(3) { animation-delay: .30s; }
+  .eq span:nth-child(4) { animation-delay: .45s; }
+  @keyframes eq { 0%,100% { height: 25%; } 50% { height: 100%; } }
+
+  .song-title {
+    font-family: 'Chakra Petch', sans-serif;
+    font-weight: 700;
+    font-size: calc(27px * var(--ui-scale));
+    line-height: 1.12;
+    text-shadow: var(--text-shadow);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .song-artist {
+    margin-top: calc(3px * var(--ui-scale));
+    font-size: calc(18px * var(--ui-scale));
+    font-weight: 600;
+    color: var(--muted);
+    text-shadow: var(--text-shadow);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ============ LEVEL WIDGET (bottom-right) ============ */
+  #level {
+    bottom: var(--margin);
+    right: var(--margin);
+    width: calc(340px * var(--ui-scale));
+    padding: calc(16px * var(--ui-scale)) calc(20px * var(--ui-scale)) calc(18px * var(--ui-scale));
+    text-align: right;
+  }
+  #level::after { top: calc(10px * var(--ui-scale)); }
+
+  .level-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: calc(10px * var(--ui-scale));
+    margin-bottom: calc(12px * var(--ui-scale));
+  }
+  .level-num {
+    font-family: 'Chakra Petch', sans-serif;
+    font-weight: 700;
+    font-size: calc(46px * var(--ui-scale));
+    line-height: .9;
+    background: var(--rail);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 0 calc(10px * var(--ui-scale)) rgba(177, 74, 237, .55));
+  }
+
+  /* XP bar = note rail being filled */
+  .rail-track {
+    position: relative;
+    height: calc(12px * var(--ui-scale));
+    border-radius: 999px;
+    background: rgba(255,255,255,0.10);
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .rail-fill {
+    position: absolute;
+    inset: 0;
+    width: 0%;
+    background: var(--rail);
+    border-radius: 999px;
+    box-shadow: 0 0 calc(12px * var(--ui-scale)) rgba(255, 45, 149, 0.7);
+    transition: width .6s cubic-bezier(.22,.61,.36,1);
+  }
+  /* energy travelling along the filled rail */
+  .rail-fill::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.85), transparent);
+    width: 40%;
+    transform: translateX(-120%);
+  }
+  body.connected .rail-fill::after { animation: travel 2.6s linear infinite; }
+  @keyframes travel { to { transform: translateX(320%); } }
+
+  .xp-line {
+    margin-top: calc(8px * var(--ui-scale));
+    font-size: calc(16px * var(--ui-scale));
+    font-weight: 600;
+    color: var(--text);
+    text-shadow: var(--text-shadow);
+  }
+  .xp-line .next { color: var(--muted); }
+
+  .level-foot {
+    margin-top: calc(10px * var(--ui-scale));
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: calc(10px * var(--ui-scale));
+    font-size: calc(13px * var(--ui-scale));
+  }
+  .level-foot .total { color: var(--muted); letter-spacing: .04em; text-shadow: var(--text-shadow); }
+  .level-foot .total b { color: var(--cyan); font-weight: 700; }
+  .gain {
+    font-family: 'Chakra Petch', sans-serif;
+    font-weight: 700;
+    color: #5dffb0;
+    text-shadow: 0 0 10px rgba(93,255,176,.6), var(--text-shadow);
+    opacity: 0;
+    transform: translateY(calc(4px * var(--ui-scale)));
+    transition: opacity .3s ease, transform .3s ease;
+  }
+  .gain.pop { opacity: 1; transform: translateY(0); }
+
+  /* level-up celebration */
+  #level.levelup { animation: levelup .9s ease; }
+  @keyframes levelup {
+    0% { box-shadow: var(--glow-shadow); }
+    35% { box-shadow: 0 0 calc(40px * var(--ui-scale)) rgba(45,226,230,.9), 0 0 calc(70px * var(--ui-scale)) rgba(255,45,149,.7); transform: translateY(0) scale(1.04); }
+    100% { box-shadow: var(--glow-shadow); transform: translateY(0) scale(1); }
+  }
+  .levelup-flash {
+    position: fixed;
+    bottom: calc(var(--margin) + 120px * var(--ui-scale));
+    right: var(--margin);
+    font-family: 'Chakra Petch', sans-serif;
+    font-weight: 700;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    font-size: calc(22px * var(--ui-scale));
+    color: var(--cyan);
+    text-shadow: 0 0 16px rgba(45,226,230,.9), var(--text-shadow);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .levelup-flash.show { animation: flash 2.4s ease forwards; }
+  @keyframes flash {
+    0% { opacity: 0; transform: translateY(calc(10px * var(--ui-scale))); }
+    15% { opacity: 1; transform: translateY(0); }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(calc(-10px * var(--ui-scale))); }
+  }
+
+  /* tiny status dot — only visible with ?debug=1 */
+  #status {
+    position: fixed; top: 8px; right: 10px;
+    font: 600 11px 'Rajdhani', sans-serif;
+    letter-spacing: .12em; text-transform: uppercase;
+    color: var(--muted); opacity: 0; transition: opacity .3s;
+  }
+  body.debug #status { opacity: 1; }
+  #status .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#ff4d6d; margin-right:6px; vertical-align: middle; box-shadow:0 0 8px currentColor; }
+  body.connected #status .dot { background:#5dffb0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+  <div id="status"><span class="dot"></span><span id="statusText">Offline</span></div>
+
+  <!-- SONG: top-left -->
+  <section id="song" class="panel" aria-label="Now playing">
+    <div class="song-head">
+      <div class="eq" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+      <div class="eyebrow">Now Playing</div>
+    </div>
+    <div class="song-title" id="songTitle">—</div>
+    <div class="song-artist" id="songArtist">—</div>
+  </section>
+
+  <!-- LEVEL: bottom-right -->
+  <section id="level" class="panel" aria-label="Player progression">
+    <div class="level-head">
+      <div class="eyebrow">Level</div>
+      <div class="level-num" id="levelNum">--</div>
+    </div>
+    <div class="rail-track"><div class="rail-fill" id="xpFill"></div></div>
+    <div class="xp-line"><span id="xpCur">0</span> <span class="next">/ <span id="xpNext">0</span> XP</span></div>
+    <div class="level-foot">
+      <span class="total">Total <b id="xpTotal">0</b></span>
+      <span class="gain" id="xpGain">+0</span>
+    </div>
+  </section>
+
+  <div class="levelup-flash" id="levelupFlash">Level Up!</div>
+
+<script>
+(() => {
+  "use strict";
+  const params = new URLSearchParams(location.search);
+  const HOST  = params.get('host') || 'localhost';
+  const PORT  = params.get('port') || '9000';
+  const DEMO  = params.has('demo');
+  const PERSIST_SONG = params.has('persist');      // keep song card up between songs
+  const SONG_LINGER_MS = 6000;                       // how long the card stays after SongEnd
+  if (params.has('debug')) document.body.classList.add('debug');
+  if (params.get('scale')) document.documentElement.style.setProperty('--ui-scale', params.get('scale'));
+
+  // ---- element refs ----
+  const el = {
+    song: document.getElementById('song'),
+    title: document.getElementById('songTitle'),
+    artist: document.getElementById('songArtist'),
+    level: document.getElementById('level'),
+    levelNum: document.getElementById('levelNum'),
+    xpFill: document.getElementById('xpFill'),
+    xpCur: document.getElementById('xpCur'),
+    xpNext: document.getElementById('xpNext'),
+    xpTotal: document.getElementById('xpTotal'),
+    xpGain: document.getElementById('xpGain'),
+    flash: document.getElementById('levelupFlash'),
+    statusText: document.getElementById('statusText'),
+  };
+
+  const fmt = (n) => (Number(n) || 0).toLocaleString();
+  let songHideTimer = null;
+  let gainTimer = null;
+
+  // ---- rendering ----
+  function showSong(song, author) {
+    el.title.textContent = song && song.trim() ? song : 'Unknown Track';
+    el.artist.textContent = author && author.trim() ? author : '—';
+    el.song.classList.add('show');
+    clearTimeout(songHideTimer);
+  }
+  function hideSongLater() {
+    if (PERSIST_SONG) return;
+    clearTimeout(songHideTimer);
+    songHideTimer = setTimeout(() => el.song.classList.remove('show'), SONG_LINGER_MS);
+  }
+
+  function renderProgression(d) {
+    el.level.classList.add('show');
+    if (d.currentLevel != null && d.currentLevel > 0) el.levelNum.textContent = d.currentLevel;
+    if (d.currentXP != null) el.xpCur.textContent = fmt(d.currentXP);
+    if (d.totalXP != null) el.xpTotal.textContent = fmt(d.totalXP);
+    if (d.xpForNextLevel != null && d.xpForNextLevel > 0) el.xpNext.textContent = fmt(d.xpForNextLevel);
+
+    let pct;
+    if (typeof d.levelProgress === 'number' && d.levelProgress >= 0) pct = d.levelProgress * 100;
+    else if (d.xpForNextLevel > 0) pct = (d.currentXP / d.xpForNextLevel) * 100;
+    if (pct != null) el.xpFill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+  }
+
+  function showGain(amount) {
+    if (!amount || amount <= 0) return;
+    el.xpGain.textContent = '+' + fmt(amount);
+    el.xpGain.classList.add('pop');
+    el.level.classList.add('show');
+    clearTimeout(gainTimer);
+    gainTimer = setTimeout(() => el.xpGain.classList.remove('pop'), 4000);
+  }
+
+  function celebrateLevelUp(newLevel) {
+    if (newLevel) el.levelNum.textContent = newLevel;
+    el.level.classList.add('show');
+    el.level.classList.remove('levelup'); void el.level.offsetWidth; el.level.classList.add('levelup');
+    el.flash.classList.remove('show'); void el.flash.offsetWidth; el.flash.classList.add('show');
+  }
+
+  // ---- event dispatch ----
+  function handle(eventType, data) {
+    data = data || {};
+    switch (eventType) {
+      case 'SongStart':
+        document.body.classList.add('playing');
+        showSong(data.song, data.author);
+        break;
+      case 'SongInfo':                         // authoritative title/author
+        showSong(data.song, data.author);
+        break;
+      case 'SongEnd':
+      case 'SongSessionComplete':
+        document.body.classList.remove('playing');
+        if (eventType === 'SongEnd' && data.song) showSong(data.song, el.artist.textContent);
+        if (data.xpEarned) showGain(data.xpEarned);
+        hideSongLater();
+        break;
+      case 'ProgressionUpdate':
+        renderProgression(data);
+        break;
+      case 'XPGained':
+        showGain(data.amount);
+        break;
+      case 'LevelUp':
+        celebrateLevelUp(data.newLevel);
+        break;
+    }
+  }
+
+  // ---- connection ----
+  let ws = null, backoff = 1000;
+  function setConnected(on) {
+    document.body.classList.toggle('connected', on);
+    el.statusText.textContent = on ? 'Live' : 'Offline';
+  }
+
+  function connect() {
+    if (DEMO) return;
+    try {
+      ws = new WebSocket(`ws://${HOST}:${PORT}`);
+    } catch (e) {
+      scheduleReconnect(); return;
+    }
+    ws.onopen = () => { setConnected(true); backoff = 1000; };
+    ws.onmessage = (ev) => {
+      try {
+        const msg = JSON.parse(ev.data);
+        if (msg && msg.eventType) handle(msg.eventType, msg.data);
+      } catch (_) { /* ignore malformed frames */ }
+    };
+    ws.onclose = () => { setConnected(false); scheduleReconnect(); };
+    ws.onerror = () => { try { ws.close(); } catch (_) {} };
+  }
+  function scheduleReconnect() {
+    setTimeout(connect, backoff);
+    backoff = Math.min(backoff * 1.6, 8000);     // gentle exponential backoff, capped
+  }
+
+  // ---- demo mode for positioning in OBS (?demo=1) ----
+  function runDemo() {
+    document.body.classList.add('connected', 'playing');
+    el.statusText.textContent = 'Demo';
+    showSong('Neon Horizon', 'OmniDreamer');
+    let lvl = 82, cur = 1840, next = 4200, total = 220485;
+    renderProgression({ currentLevel: lvl, currentXP: cur, totalXP: total, xpForNextLevel: next, levelProgress: cur / next });
+    setInterval(() => {
+      const gain = 120 + Math.floor(Math.random() * 220);
+      cur += gain; total += gain;
+      if (cur >= next) { cur -= next; lvl += 1; celebrateLevelUp(lvl); }
+      renderProgression({ currentLevel: lvl, currentXP: cur, totalXP: total, xpForNextLevel: next, levelProgress: cur / next });
+      showGain(gain);
+    }, 3500);
+  }
+
+  if (DEMO) runDemo(); else connect();
+})();
+</script>
+</body>
+</html>
