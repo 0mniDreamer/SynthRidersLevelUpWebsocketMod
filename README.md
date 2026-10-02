@@ -18,6 +18,7 @@ Useful for stream overlays, chat bots, smart-home/LED reactions, haptics, and st
 | Runtime | IL2CPP, .NET 6 |
 | MelonLoader | 0.7.2 (Open-Beta) |
 | Unity | 6000.3.13f1 (current) and 2021.3.45f2 (previous branch) |
+| OS | Windows, and Linux via Proton/Wine (2.5.0+) |
 
 A single build loads on both Unity branches — game members are resolved by reflection at runtime
 rather than against branch-specific assemblies.
@@ -226,6 +227,11 @@ expected on a fresh launch.
 
 **"Type not found" warnings.** A game update may have renamed members. Enable `DebugLogging`,
 reproduce, and the dumps will show the current member names.
+
+**Linux / Proton: `WebSocketProtocolComponent` errors (pre-2.5.0).** Older builds accepted
+WebSocket upgrades through a native Windows component that Wine doesn't provide, so every
+connection failed under Proton while the HTTP status page still worked. 2.5.0+ uses a raw TCP
+server with its own handshake and no native dependency — update to 2.5.0 or later.
 
 ## Acknowledgements
 

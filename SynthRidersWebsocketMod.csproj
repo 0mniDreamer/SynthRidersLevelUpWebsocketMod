@@ -10,7 +10,7 @@
     <AssemblyName>SynthRidersWebsocketMod</AssemblyName>
     <Product>Synth Riders WebSocket Events</Product>
     <Description>Exposes all Synth Riders game events via WebSocket for external integrations</Description>
-    <Version>2.4.0</Version>
+    <Version>2.5.0</Version>
     <Authors>OmniDreamer</Authors>
 	<SynthRidersPath>F:\SteamLibrary\steamapps\common\SynthRiders</SynthRidersPath>
   </PropertyGroup>

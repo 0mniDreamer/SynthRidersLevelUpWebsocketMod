@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented here.
 
+## [2.5.0]
+
+### Fixed
+- **Score now tracks the game live.** The mod summed each note's base points, which falls
+  behind the real total once the combo multiplier rises above 1x — so the score read low
+  mid-song and only corrected at the end (when `SongSessionComplete` carries the final total).
+  It now reads `Game_ScoreManager.currentScore` (multiplier already applied) each note, with a
+  candidate-name fallback and graceful fallback to accumulation if the instance isn't ready.
+- **WebSocket connections now work when the game runs under Proton/Wine (Linux).** The server
+  previously used `HttpListener.AcceptWebSocketAsync`, which initialises the native Windows
+  `websocket.dll` (`WebSocketProtocolComponent`). That component does not exist under Wine, so
+  every upgrade there failed with *"The type initializer for
+  'System.Net.WebSockets.WebSocketProtocolComponent' threw an exception"* while the HTTP status
+  page still worked. The server now accepts raw TCP (`TcpListener`) and performs the RFC 6455
+  handshake and frame codec itself — no native dependency, identical behaviour on Windows.
+
+### Changed
+- `Host` values are resolved explicitly: `localhost` binds loopback only, `0.0.0.0` (or `*`/`+`)
+  binds all interfaces for LAN access, and any other value is parsed as a literal IP.
+
 ## [2.4.0]
 
 ### Fixed

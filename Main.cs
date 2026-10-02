@@ -1,7 +1,7 @@
 using MelonLoader;
 using SynthRidersWebsocketMod.Core;
 
-[assembly: MelonInfo(typeof(SynthRidersWebsocketMod.Main), "Synth Riders WebSocket Events", "2.4.0", "OmniDreamer")]
+[assembly: MelonInfo(typeof(SynthRidersWebsocketMod.Main), "Synth Riders WebSocket Events", "2.5.0", "OmniDreamer")]
 [assembly: MelonGame("Kluge Interactive", "SynthRiders")]
 
 namespace SynthRidersWebsocketMod;
@@ -33,7 +33,7 @@ public class Main : MelonMod
         _config.Initialize();
 
         MelonLogger.Msg("╔══════════════════════════════════════════════════════════╗");
-        MelonLogger.Msg("║     SYNTH RIDERS WEBSOCKET EVENTS v2.4.0                 ║");
+        MelonLogger.Msg("║     SYNTH RIDERS WEBSOCKET EVENTS v2.5.0                 ║");
         MelonLogger.Msg("╠══════════════════════════════════════════════════════════╣");
         MelonLogger.Msg("║  Exposing game events via WebSocket                      ║");
         MelonLogger.Msg($"║  Connect to: ws://{_config.Host}:{_config.Port,-24} ║");

@@ -71,6 +71,13 @@ public static class RuntimePatches
         { "_name", "_songName", "_title", "_trackName", "name", "songName", "title", "trackName" };
     private static readonly string[] SongAuthorCandidates =
         { "_author", "_artist", "_mapper", "_beatMapper", "author", "artist", "mapper" };
+
+    // Live, multiplier-applied running score lives on Game_ScoreManager.currentScore. Summing
+    // the per-note base points (OnScore's `points` arg) drifts below it once the combo
+    // multiplier rises above 1x, which is why the old total was low mid-song and only corrected
+    // at song end (SongSessionComplete carries the true final score). Confirmed by runtime probe.
+    private static readonly string[] ScoreCandidates =
+        { "currentScore", "Score", "_score", "score" };
     private static bool _snapshotFieldsDumped;
 
     public static void Initialize(EventServer server)
@@ -354,7 +361,14 @@ public static class RuntimePatches
         {
             // Update state FIRST so stats stay correct even when no client is listening.
             _isInSong = true;
-            _score += __1;
+
+            // Read the game's live running score (Game_ScoreManager.currentScore), which already
+            // includes the combo multiplier. Summing per-note base points drifts below the real
+            // total once the multiplier exceeds 1x. Fall back to accumulation only if the score
+            // manager instance isn't available yet.
+            int gameScore = TryReadGameScore();
+            if (gameScore != int.MinValue) _score = gameScore;
+            else _score += __1;
 
             bool isMilestone = false;
             if (__2)
@@ -544,6 +558,21 @@ public static class RuntimePatches
         {
             MelonLogger.Error($"[RuntimePatches] ReturnToMenu error: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Reads the game's live running score from Game_ScoreManager.s_instance.currentScore
+    /// (multiplier already applied). Returns int.MinValue if the type or instance isn't
+    /// available, so the caller can fall back to per-note accumulation.
+    /// </summary>
+    private static int TryReadGameScore()
+    {
+        if (_scoreManagerType == null) return int.MinValue;
+
+        var instance = GetSingletonInstance(_scoreManagerType);
+        if (instance == null) return int.MinValue;
+
+        return ReadIntMember(instance, instance.GetType(), ScoreCandidates, int.MinValue);
     }
 
     private static void ResolveSongInfoReflection()
