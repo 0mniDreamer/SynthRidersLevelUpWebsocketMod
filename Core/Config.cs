@@ -2,9 +2,8 @@ using MelonLoader;
 
 namespace SynthRidersWebsocketMod.Core;
 
-/// <summary>
 /// Configuration for the WebSocket server
-/// </summary>
+
 public class Config
 {
     private MelonPreferences_Category _category;
