@@ -6,7 +6,6 @@ using SynthRidersWebsocketMod.Core;
 
 namespace SynthRidersWebsocketMod;
 
-/// <summary>
 /// Synth Riders WebSocket Events Mod
 /// 
 /// Exposes all game events via WebSocket for external integrations.
@@ -16,7 +15,7 @@ namespace SynthRidersWebsocketMod;
 /// - Gameplay: NoteHit, ComboBreak, WallHit, RailCleared, HealthDepleted, etc.
 /// - Progression: LevelUp, XPGained, BadgeUnlocked, MissionCompleted, etc.
 /// - Song: SongStart, SongEnd, SongSessionComplete, etc.
-/// </summary>
+
 public class Main : MelonMod
 {
     public static Main Instance { get; private set; }
@@ -62,9 +61,9 @@ public class Main : MelonMod
         SynthRidersWebsocketMod.Harmony.RuntimePatches.Tick();
     }
 
-    /// <summary>
+   
     /// Get the event server instance (for other mods to use)
-    /// </summary>
+   
     public static EventServer GetEventServer()
     {
         return Instance?._eventServer;
