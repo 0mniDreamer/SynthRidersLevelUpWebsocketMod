@@ -14,9 +14,9 @@ using SynthRidersWebsocketMod.Harmony;
 
 namespace SynthRidersWebsocketMod.Core;
 
-/// <summary>
+
 /// WebSocket server that broadcasts all Synth Riders game events.
-///
+
 /// Implemented directly on top of <see cref="TcpListener"/> with a hand-rolled RFC 6455
 /// handshake and frame codec. This deliberately avoids HttpListener.AcceptWebSocketAsync /
 /// System.Net.WebSockets, whose managed server stack initialises the native Windows
@@ -24,7 +24,7 @@ namespace SynthRidersWebsocketMod.Core;
 /// Proton/Wine, so on Linux every upgrade there threw "The type initializer for
 /// 'System.Net.WebSockets.WebSocketProtocolComponent' threw an exception." Raw TCP + a manual
 /// codec is pure Winsock, which Wine supports, and behaves identically on real Windows.
-/// </summary>
+
 public class EventServer
 {
     private const string WsMagicGuid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
@@ -61,10 +61,10 @@ public class EventServer
     public bool IsRunning => _isRunning;
     public int ClientCount => _clients.Count;
 
-    /// <summary>True if at least one client is connected. Patches check this to skip payload work.</summary>
+    /// True if at least one client is connected. Patches check this to skip payload work.
     public bool HasClients => !_clients.IsEmpty;
 
-    /// <summary>Lightweight snapshot enqueued by the game thread; serialized later on the worker.</summary>
+    /// Lightweight snapshot enqueued by the game thread; serialized later on the worker.
     private readonly struct QueuedEvent
     {
         public readonly string EventType;
@@ -79,9 +79,9 @@ public class EventServer
         }
     }
 
-    /// <summary>
+
     /// All available event types this server can broadcast
-    /// </summary>
+ 
     public static readonly string[] AvailableEvents = new[]
     {
         // Connection
@@ -106,9 +106,9 @@ public class EventServer
         "SongSessionComplete"
     };
 
-    /// <summary>
+  
     /// Start the WebSocket server
-    /// </summary>
+  
     public void Start(string host = "localhost", int port = 9000)
     {
         if (_isRunning)
@@ -157,11 +157,11 @@ public class EventServer
         }
     }
 
-    /// <summary>
+  
     /// Resolve the configured host string to an <see cref="IPAddress"/> to bind.
     /// "localhost" binds loopback only; "0.0.0.0"/"*"/"+" bind all interfaces (LAN access);
     /// anything else is parsed as a literal IP, falling back to all interfaces.
-    /// </summary>
+   
     private static IPAddress ResolveBindAddress(string host)
     {
         if (string.IsNullOrEmpty(host)) return IPAddress.Loopback;
@@ -177,9 +177,9 @@ public class EventServer
         return IPAddress.Any;
     }
 
-    /// <summary>
+  
     /// Stop the WebSocket server
-    /// </summary>
+
     public void Stop()
     {
         if (!_isRunning) return;
@@ -230,11 +230,10 @@ public class EventServer
         }
     }
 
-    /// <summary>
     /// Reads the incoming HTTP request line + headers and either upgrades to WebSocket
     /// (Upgrade: websocket + Sec-WebSocket-Key present) or answers the status JSON for a
     /// plain GET, then hands off to the per-client read loop.
-    /// </summary>
+
     private async Task HandleConnection(TcpClient tcp)
     {
         NetworkStream stream = null;
@@ -280,7 +279,7 @@ public class EventServer
         }
     }
 
-    /// <summary>Reads bytes up to the end of the HTTP header block (CRLF CRLF). One-shot per connection.</summary>
+
     private static async Task<string> ReadHttpHeaderAsync(NetworkStream stream, CancellationToken token)
     {
         var sb = new StringBuilder();
@@ -306,7 +305,6 @@ public class EventServer
         return sb.ToString();
     }
 
-    /// <summary>Parses header lines into a lowercase-keyed dictionary. The request line is ignored.</summary>
     private static Dictionary<string, string> ParseHeaders(string header)
     {
         var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -328,7 +326,7 @@ public class EventServer
         return map;
     }
 
-    /// <summary>Writes the 101 Switching Protocols response with the computed accept key.</summary>
+  
     private static async Task CompleteHandshake(NetworkStream stream, string wsKey, CancellationToken token)
     {
         string accept;
@@ -350,7 +348,7 @@ public class EventServer
         await stream.FlushAsync(token);
     }
 
-    /// <summary>Registers the upgraded client, sends the welcome + sticky state, then reads frames.</summary>
+
     private async Task RunClient(TcpClient tcp, NetworkStream stream)
     {
         var client = new WsClient(Guid.NewGuid(), tcp, stream);
@@ -388,7 +386,7 @@ public class EventServer
         }
     }
 
-    /// <summary>Per-client frame read loop: dispatches text messages, answers pings, honours close.</summary>
+    /// Per-client frame read loop: dispatches text messages, answers pings, honours close.
     private async Task ReadLoop(WsClient client)
     {
         var stream = client.Stream;
@@ -477,7 +475,7 @@ public class EventServer
         }
     }
 
-    /// <summary>Reads exactly <paramref name="count"/> bytes or returns false on EOF.</summary>
+    /// Reads exactly <paramref name="count"/> bytes or returns false on EOF.
     private static async Task<bool> ReadExactAsync(NetworkStream stream, byte[] buffer, int offset, int count, CancellationToken token)
     {
         int read = 0;
@@ -490,10 +488,9 @@ public class EventServer
         return true;
     }
 
-    /// <summary>
     /// Builds a single unmasked server frame (FIN set). Server-to-client frames are never
     /// masked per RFC 6455. Supports 7-bit, 16-bit and 64-bit payload lengths.
-    /// </summary>
+
     private static byte[] BuildFrame(byte opcode, byte[] payload)
     {
         int len = payload.Length;
@@ -636,9 +633,9 @@ public class EventServer
         catch { }
     }
 
-    /// <summary>
+
     /// Called when scene changes
-    /// </summary>
+
     public void OnSceneChanged(string sceneName, int buildIndex)
     {
         _currentScene = sceneName;
@@ -652,11 +649,11 @@ public class EventServer
         });
     }
 
-    /// <summary>
+
     /// Broadcast an event to all connected clients. Called by Harmony patches on the game thread.
     /// This only enqueues — all JSON serialization and socket I/O happen on the worker thread,
     /// keeping the VR game thread free of allocation and network stalls.
-    /// </summary>
+  
     public void BroadcastEvent(string eventType, object data)
     {
         // Cache sticky events even if no client is connected, so the next client to
@@ -670,12 +667,12 @@ public class EventServer
         _sendChannel?.Writer.TryWrite(new QueuedEvent(eventType, data, DateTime.UtcNow));
     }
 
-    /// <summary>
+
     /// Worker loop: drains the queue, serializes + frames each event once, and sends to all
     /// clients. The frame bytes are built a single time and shared (server frames are unmasked,
     /// so the same buffer is valid for every client). Each client's write is serialized by its
     /// own send lock, preventing overlapping writes on one socket.
-    /// </summary>
+
     private async Task ProcessSendQueue()
     {
         var reader = _sendChannel.Reader;
@@ -778,10 +775,9 @@ public class EventServer
         }
     }
 
-    /// <summary>
     /// A single connected client: the TCP socket, its stream, and a send lock that serializes
     /// all writes (welcome/sticky sends can otherwise race the broadcast worker on one socket).
-    /// </summary>
+  
     private sealed class WsClient
     {
         public readonly Guid Id;
