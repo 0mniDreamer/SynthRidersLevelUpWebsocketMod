@@ -8,9 +8,8 @@ using SynthRidersWebsocketMod.Core;
 
 namespace SynthRidersWebsocketMod.Harmony;
 
-/// <summary>
 /// Runtime patches for IL2CPP - uses reflection to find and patch methods
-/// </summary>
+
 public static class RuntimePatches
 {
     private static HarmonyLib.Harmony _harmony;
@@ -193,7 +192,7 @@ public static class RuntimePatches
             }
             catch (ReflectionTypeLoadException)
             {
-                // Some assemblies can't be fully loaded, skip them
+                // Some assemblies can't be fully loaded so we skip them
             }
             catch (Exception ex)
             {
@@ -493,10 +492,9 @@ public static class RuntimePatches
         }
     }
 
-    /// <summary>
     /// Fired once the gameplay scene finishes loading. By now SetSongStatusData() has
     /// populated Game_InfoProvider._name/_author, so this is the reliable read point.
-    /// </summary>
+   
     public static void OnLevelFinishedLoading_Postfix()
     {
         try
@@ -519,7 +517,7 @@ public static class RuntimePatches
         }
     }
 
-    /// <summary>If song metadata wasn't ready at Awake, retry and emit a SongInfo update.</summary>
+    /// If song metadata wasn't ready at Awake, retry and emit a SongInfo update.
     private static void TryBackfillSongInfo()
     {
         if (_songInfoSent) return;
@@ -560,11 +558,11 @@ public static class RuntimePatches
         }
     }
 
-    /// <summary>
+  
     /// Reads the game's live running score from Game_ScoreManager.s_instance.currentScore
     /// (multiplier already applied). Returns int.MinValue if the type or instance isn't
     /// available, so the caller can fall back to per-note accumulation.
-    /// </summary>
+ 
     private static int TryReadGameScore()
     {
         if (_scoreManagerType == null) return int.MinValue;
@@ -648,7 +646,7 @@ public static class RuntimePatches
         }
     }
 
-    /// <summary>Reads the first non-empty string property/field from candidate names.</summary>
+    /// Reads the first non-empty string property/field from candidate names.
     private static string ReadStringMember(object obj, string[] names)
     {
         var type = obj.GetType();
@@ -700,7 +698,7 @@ public static class RuntimePatches
             }
         }
 
-        // OnHealthDepleated (note: typo in original game code)
+        // OnHealthDepleated (note: typo in original game code :) )
         var onHealthDepleted = sm.GetMethod("OnHealthDepleated", BindingFlags.Public | BindingFlags.Instance);
         if (onHealthDepleted != null)
         {
@@ -743,7 +741,7 @@ public static class RuntimePatches
             if (_server == null || !_server.HasClients) return;
 
             // The game passes health as a normalized 0..1 fraction (full = 1.0), and it can
-            // momentarily underflow below 0 at death. Convert to 0..100 and clamp.
+            // momentarily underflow below 0 at death. Convert to 0..100 and clamp here.
             float raw = __0;
 
             if (_debugLogging)
@@ -975,7 +973,7 @@ public static class RuntimePatches
         }
     }
 
-    /// <summary>Reads an int from the object directly, or from its nested profile/careerStats members.</summary>
+    ///Reads an int from the object directly, or from its nested profile/careerStats members.
     private static int ReadProgressionInt(object snapshot, Type snapType, string[] names, int fallback)
     {
         // Try top-level
@@ -993,7 +991,7 @@ public static class RuntimePatches
         return fallback;
     }
 
-    /// <summary>Reads a float from the object directly, or from its nested profile/careerStats members.</summary>
+    ///Reads a float from the object directly, or from its nested profile/careerStats members.
     private static float ReadProgressionFloat(object snapshot, Type snapType, string[] names, float fallback)
     {
         float top = ReadFloatMember(snapshot, snapType, names, float.NaN);
@@ -1028,7 +1026,7 @@ public static class RuntimePatches
         return fallback;
     }
 
-    /// <summary>Reads a reference-typed member (property or field) by name.</summary>
+    /// Reads a reference-typed member (property or field) by name.
     private static object ReadMemberObject(object obj, Type type, string name)
     {
         try
@@ -1051,7 +1049,7 @@ public static class RuntimePatches
             MelonLogger.Msg($"[RuntimePatches][debug]   field {f.FieldType.Name} {f.Name}");
     }
 
-    /// <summary>Reads the first matching int-like property/field from candidate names.</summary>
+    /// Reads the first matching int-like property/field from candidate names.
     private static int ReadIntMember(object obj, Type type, string[] names, int fallback)
     {
         foreach (var n in names)
@@ -1074,7 +1072,7 @@ public static class RuntimePatches
     private static bool IsIntLike(Type t)
         => t == typeof(int) || t == typeof(uint) || t == typeof(long) || t == typeof(short) || t == typeof(float) || t == typeof(double);
 
-    /// <summary>Broadcasts the cached progression snapshot (level / XP / total XP).</summary>
+    /// Broadcasts the cached progression snapshot (level / XP / total XP).
     private static void BroadcastProgression()
     {
         if (_curLevel < 0 && _curXP < 0 && _curTotalXP < 0) return; // nothing known yet
@@ -1089,20 +1087,20 @@ public static class RuntimePatches
         });
     }
 
-    /// <summary>
+   
     /// Called by the server (via a flag) when a client connects, so the overlay's
     /// progression panel populates immediately instead of waiting for a level-up.
-    /// </summary>
+
     public static void RequestProgressionSnapshot()
     {
         _progressionSnapshotRequested = true;
     }
 
-    /// <summary>
+  
     /// Main-thread pump (driven from Main.OnUpdate). Drains pending snapshot requests.
     /// IL2CPP member reads must happen on the Unity thread, so we never read from the
     /// socket thread directly.
-    /// </summary>
+ 
     public static void Tick()
     {
         if (!_progressionSnapshotRequested) return;
@@ -1122,10 +1120,9 @@ public static class RuntimePatches
         }
     }
 
-    /// <summary>
     /// Proactively reads the current progression from ProgressionManager.Instance by locating
     /// a PlayerDataSnapshot-like member and pulling level/XP from it. Updates the cached values.
-    /// </summary>
+ 
     private static void TryReadProgressionSnapshot()
     {
         try
@@ -1184,7 +1181,7 @@ public static class RuntimePatches
         }
     }
 
-    /// <summary>Gets a singleton instance via common patterns (Instance/s_instance, property or field).</summary>
+    /// Gets a singleton instance via common patterns (Instance/s_instance, property or field).
     private static object GetSingletonInstance(Type type)
     {
         string[] names = { "Instance", "s_instance", "_instance", "instance" };
@@ -1211,7 +1208,7 @@ public static class RuntimePatches
         return null;
     }
 
-    /// <summary>Scans an object's members for a PlayerDataSnapshot-like instance.</summary>
+    /// Scans an object's members for a PlayerDataSnapshot-like instance.
     private static object FindSnapshotMember(object obj, Type type)
     {
         try
